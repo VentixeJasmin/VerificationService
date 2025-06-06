@@ -57,7 +57,7 @@ public class VerificationController(VerificationService verificationService, Ser
             var httpClient = new HttpClient();
             var apiResponse = await httpClient.PostAsJsonAsync(
                 "https://authservice-jasmin-h9euf4dpghc5d7a8.swedencentral-01.azurewebsites.net/api/auth/confirm-email",
-                new { req.Email });
+                new { req.Email, req.Code });
 
             if (!apiResponse.IsSuccessStatusCode)
             {
