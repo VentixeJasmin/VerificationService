@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Presentation.Models;
 using Presentation.Services;
+using System.Text.Json;
 
 namespace Presentation.Controllers;
 
@@ -54,13 +55,18 @@ public class VerificationController(VerificationService verificationService, Ser
         if (result.Succeeded)
         {
             var httpClient = new HttpClient();
-            var apiResponse = await httpClient.PostAsJsonAsync("https://authservice-jasmin-h9euf4dpghc5d7a8.swedencentral-01.azurewebsites.net/api/auth/confirm-email", new { req.Email });
+            var apiResponse = await httpClient.PostAsJsonAsync(
+                "https://authservice-jasmin-h9euf4dpghc5d7a8.swedencentral-01.azurewebsites.net/api/auth/confirm-email",
+                new { req.Email });
+
             if (!apiResponse.IsSuccessStatusCode)
             {
-                return StatusCode(500, result);
+                return StatusCode(500, "Failed to confirm email");
             }
 
-            return Ok(new { message = "Registration succeeded." });
+            // Forward the entire response from auth service
+            var content = await apiResponse.Content.ReadAsStringAsync();
+            return Content(content, "application/json");
         }
         else
         {
