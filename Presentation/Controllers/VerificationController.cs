@@ -54,19 +54,41 @@ public class VerificationController(VerificationService verificationService, Ser
         var result = _verificationService.VerifyVerificationCode(req);
         if (result.Succeeded)
         {
-            var httpClient = new HttpClient();
-            var apiResponse = await httpClient.PostAsJsonAsync(
-                "https://authservice-jasmin-h9euf4dpghc5d7a8.swedencentral-01.azurewebsites.net/api/auth/confirm-email",
-                new { Email = req.Email });
-
-            if (!apiResponse.IsSuccessStatusCode)
+            try
             {
-                return StatusCode(500, "Failed to confirm email");
-            }
+                var httpClient = new HttpClient();
+                var requestBody = new { Email = req.Email };
 
-            // Forward the entire response from auth service
-            var content = await apiResponse.Content.ReadAsStringAsync();
-            return Content(content, "application/json");
+                var apiResponse = await httpClient.PostAsJsonAsync(
+                    "https://authservice-jasmin-h9euf4dpghc5d7a8.swedencentral-01.azurewebsites.net/api/auth/confirm-email",
+                    requestBody);
+
+                if (!apiResponse.IsSuccessStatusCode)
+                {
+                    // Get the actual error from auth service
+                    var errorContent = await apiResponse.Content.ReadAsStringAsync();
+                    return StatusCode(500, new
+                    {
+                        error = "Failed to confirm email",
+                        statusCode = apiResponse.StatusCode,
+                        authServiceError = errorContent,
+                        sentEmail = req.Email
+                    });
+                }
+
+                // Forward the entire response from auth service
+                var content = await apiResponse.Content.ReadAsStringAsync();
+                return Content(content, "application/json");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    error = "Exception calling auth service",
+                    message = ex.Message,
+                    sentEmail = req.Email
+                });
+            }
         }
         else
         {
